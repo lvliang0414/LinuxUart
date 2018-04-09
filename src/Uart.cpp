@@ -4,6 +4,7 @@
 #include <string.h>
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <sys/select.h>
 #include <fcntl.h>
 #include <unistd.h>
 #include <termios.h>
@@ -14,7 +15,8 @@ Uart::Uart(const char * dev)
 
     strcat(tty, dev);
 
-    fd = open(tty, O_RDWR | O_NOCTTY | O_NDELAY); 
+    fd = open(tty, O_RDWR | O_NOCTTY); 
+    //fd = open(tty, O_RDWR | O_NOCTTY | O_NDELAY); 
     if (fd > 0) {
         printf("open %s!\n", tty);
     }
@@ -112,7 +114,7 @@ int Uart::SetOpt(int speed, int bits, char event, int stop)
         newtio.c_cflag |= CSTOPB;
     }
 
-    newtio.c_cc[VTIME] = 0;
+    newtio.c_cc[VTIME] = 5;
     newtio.c_cc[VMIN] = 0;
 
     
@@ -148,9 +150,26 @@ int Uart::Read(char * buf, int size)
         perror("Uart Init failed");
     }
     
-    int ret = read(fd, buf, size);
+    fd_set set;
+    struct timeval timeout;
 
+    FD_ZERO(&set);
+    FD_SET(fd, &set);
+
+    timeout.tv_sec = 1;
+    timeout.tv_usec = 200000;
+
+    int ret = select(fd + 1, &set, NULL, NULL, &timeout);
+
+    if (ret > 0) {
+        ret = read(fd, buf, size);
+    }
+  
     return ret;
 }
 
+int Uart::GetFd()
+{
+    return fd;
+}
 

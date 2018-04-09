@@ -16,6 +16,7 @@ public:
     int SetOpt(int speed, int bits, char event, int stop);
     int Write(char * buf, int size);
     int Read(char * buf, int size);
+    int GetFd();
 
 private:
     int fd;
